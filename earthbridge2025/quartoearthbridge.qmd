@@ -1,0 +1,511 @@
+---
+title: "Reckoning descriptors of diversity from space: generalized entropy in action"
+author: Duccio Rocchini
+format:
+  revealjs:
+    self-contained: true
+editor: visual
+---
+
+## Remote sensing for ecology
+
+::: {style="text-align: center;"}
+![](../images/landsat_gee.png){fig-width="60%" fig-align="center"}
+:::
+
+## EarthBridge
+
+::: {style="text-align: center;"}
+![](images/clipboard-681311309.png)
+:::
+
+## Diversity from space
+
+```{r div, echo=F, eval=T}
+
+# Load necessary packages
+library(ggplot2)
+
+# Simulated data: each point represents a sample location
+set.seed(42)
+n <- 100
+spectral_diversity <- runif(n, 0.2, 1.0)  # Spectral entropy, for example
+species_diversity <- 2 * spectral_diversity + rnorm(n, sd = 0.3)  # Positive relationship + noise
+
+data <- data.frame(
+  SpectralDiversity = spectral_diversity,
+  SpeciesDiversity = species_diversity
+)
+
+# Plot
+p <- ggplot(data, aes(x = SpectralDiversity, y = SpeciesDiversity)) +
+  geom_point(color = "#1E90FF", alpha = 0.7, size = 2) +
+  geom_smooth(method = "lm", se = TRUE, color = "#228B22", linetype = "dashed") +
+  labs(
+    title = "Relationship Between Spectral and Species Diversity",
+    x = "Spectral Diversity (e.g., entropy from satellite data)",
+    y = "Species Diversity (e.g., Shannon index from field data)"
+  ) +
+  theme_minimal(base_size = 14)
+
+p
+```
+
+## Aim
+
+To develop a framework for assessing **diversity from space** by integrating both spatial and temporal dimensions of diversity.
+
+-   Quantify how diversity varies across **space** (e.g., landscapes, regions).
+
+-   Capture how diversity changes over **time** (e.g., seasonal or long-term dynamics).
+
+## Aim
+
+```{r aim, echo=F, eval=T}
+# Load required libraries
+library(ggplot2)
+library(patchwork)
+
+# Simulated spatial data: landscape with 4 patches of different "diversity"
+set.seed(123)
+landscape <- expand.grid(x = 1:10, y = 1:10)
+landscape$land_cover <- sample(c("Forest", "Grassland", "Water", "Urban"), 100, replace = TRUE)
+
+# Plot spatial diversity
+p1 <- ggplot(landscape, aes(x, y, fill = land_cover)) +
+  geom_tile(color = "white") +
+  scale_fill_manual(values = c("Forest" = "#228B22", 
+                               "Grassland" = "#ADFF2F",
+                               "Water" = "#1E90FF", 
+                               "Urban" = "#A9A9A9")) +
+  labs(title = "Spatial Diversity", fill = "Land Cover") +
+  theme_minimal() +
+  coord_equal()
+
+# Simulated temporal data: changes in land cover proportions over 5 years
+time_data <- data.frame(
+  Year = rep(2018:2022, each = 4),
+  LandCover = rep(c("Forest", "Grassland", "Water", "Urban"), times = 5),
+  Proportion = c(0.4, 0.3, 0.2, 0.1,
+                 0.35, 0.3, 0.25, 0.1,
+                 0.3, 0.25, 0.3, 0.15,
+                 0.28, 0.2, 0.35, 0.17,
+                 0.25, 0.2, 0.4, 0.15)
+)
+
+# Plot temporal diversity
+p2 <- ggplot(time_data, aes(x = Year, y = Proportion, fill = LandCover)) +
+  geom_area(position = "stack", alpha = 0.8) +
+  scale_fill_manual(values = c("Forest" = "#228B22", 
+                               "Grassland" = "#ADFF2F",
+                               "Water" = "#1E90FF", 
+                               "Urban" = "#A9A9A9")) +
+  labs(title = "Temporal Diversity", y = "Proportion", fill = "Land Cover") +
+  theme_minimal()
+
+# Combine the two plots
+combined_plot <- p1 + p2 + plot_layout(ncol = 2)
+combined_plot
+```
+
+# Spatial diversity
+
+## The spectral species concept
+
+::: {style="text-align: center;"}
+![](../images/feret_ssc.png){width="60%"}
+:::
+
+::: {style="text-align: center;"}
+Féret and Asner, Ecol. Appl, 2014
+:::
+
+## Packages for diversity measurement
+
+```{r rasterdiv, echo=T, eval=F}
+library(rasterdiv)
+citation("rasterdiv")
+```
+
+::: {style="text-align: center;"}
+![](images/clipboard-582365401.png){width="80%"}
+:::
+
+## Information theory
+
+$$
+H = - \sum_{i=1}^N p_i \times \ln p_i 
+$$
+
+## Point descriptor: abundance of values
+
+::: {style="text-align: center;"}
+![](../images/shannontheory.png)
+:::
+
+## Problems with Information theory
+
+```{r shannon, echo=F, eval=T}
+library(ggplot2)
+
+# Crea un data frame con due quadrati
+df <- data.frame(
+  x = c(1, 3),    # posizione orizzontale
+  y = c(1, 1),    # posizione verticale
+  color = c("red", "blue")
+)
+
+ggplot(df) +
+  geom_rect(aes(xmin = x - 0.5, xmax = x + 0.5,
+                ymin = y - 0.5, ymax = y + 0.5,
+                fill = color), color = "black") +
+  scale_fill_identity() +
+  coord_fixed() +            # per mantenere proporzioni corrette
+  theme_void()               # sfondo pulito
+```
+
+## Problems with Information theory
+
+```{r cyan, echo=F, eval=T}
+library(ggplot2)
+
+# Crea un data frame con due quadrati
+df <- data.frame(
+  x = c(1, 3),    # posizione orizzontale
+  y = c(1, 1),    # posizione verticale
+  color = c("cyan", "blue")
+)
+
+ggplot(df) +
+  geom_rect(aes(xmin = x - 0.5, xmax = x + 0.5,
+                ymin = y - 0.5, ymax = y + 0.5,
+                fill = color), color = "black") +
+  scale_fill_identity() +
+  coord_fixed() +           
+  theme_void()               
+```
+
+## Different situations...
+
+```{r quadrats, echo=F, eval=T}
+library(ggplot2)
+
+df <- data.frame(
+  x = c(0.5, 1.5, 0.5, 1.5),
+  y = c(1.5, 1.5, 0.5, 0.5),
+  color = c("red", "blue", "cyan", "blue")
+)
+
+ggplot(df) +
+  geom_rect(aes(xmin = x - 0.4, xmax = x + 0.4,
+                ymin = y - 0.4, ymax = y + 0.4,
+                fill = color), color = "black") +
+  scale_fill_identity() +
+  coord_fixed(xlim = c(0, 2), ylim = c(0, 2)) +
+  theme_void() +
+  theme(plot.margin = margin(10, 10, 40, 10))
+```
+
+## ... Same value
+
+::: {style="text-align: center; margin-top: 20px; font-size: 1.2em;"}
+$$
+H = - \sum_{i=1}^N p_i \ln p_i = 0.693
+$$
+:::
+
+## Shannon entropy
+
+Main **problem**:
+
+-   point descriptor: [Harvard Library](https://people.math.harvard.edu/~ctm/home/text/others/shannon/entropy/entropy.pdf)
+
+## An example in Mato Grosso
+
+```{r mato, echo=T, eval=T}
+library(rasterdiv)
+library(imageRy)
+mato <- im.import("matogrosso_ast_2006209_lrg.jpg")
+im.plotRGB(mato, 1, 2, 3)
+```
+
+## The problem in a map
+
+```{r shan, echo=T, eval=F}
+shannon <- Shannon(mato, window=3)
+plot(Shannon[[1]])
+```
+
+::: {style="text-align: center;"}
+![](../images/shannonmato.png){width="50%"}
+:::
+
+## Solution: generalized entropy
+
+$$
+H_\alpha(X) = \frac{1}{1 - \alpha} \ln \left( \sum_{i=1}^n p_i^\alpha \right)
+$$
+
+## Info on the function
+
+```{r renyi, echo=T, eval=T}
+h <- utils::help("Renyi", package = "rasterdiv")
+hf <- utils:::.getHelpFile(h)
+txt <- tools::Rd2txt(hf)
+```
+
+## Rényi generalized entropy: output
+
+::: {style="text-align: center;"}
+![](../images/udzungwa.png){fig-width="40%" fig-align="center"}
+:::
+
+\centering \includegraphics[width=1\textwidth]{../images/udzungwa.png}\\
+
+# Temporal diversity
+
+## The imageRy package
+
+```{r imagery, echo = TRUE}
+library(imageRy)
+citation("imageRy")
+```
+
+## Drone images
+
+```{r droneo, echo = TRUE}
+#| fig-align: "center"
+library(terra)
+droneo=rast("../images/orto.png")
+droneo=flip(droneo)
+plotRGB(droneo, 1, 2, 3)
+```
+
+## Single layer
+
+```{r layer, echo = F, eval = T}
+#| fig-align: "center"
+library(terra)
+plot(droneo[[1]])
+```
+
+## Ridgeline plot
+
+```{r ridgedroneo, echo = F, eval = T}
+#| fig-align: "center"
+library(ggplot2)
+library(ggridges)
+library(imageRy)
+im.ridgeline(droneo[[3]], scale=40)
+```
+
+## The first ridgeline plot
+
+Antoine de Saint-Exupéry, Le Petit Prince:
+
+![](../images/first_ridgeline.jpeg){fig-align="center" width="70%"}
+
+## Wider scales
+
+```{r ridge, echo = TRUE}
+#| fig-align: "center"
+library(imageRy)
+library(terra)
+ex=im.import("Sentinel2_NDVI_2020-02-21.tif")
+plot(ex)
+```
+
+## Ridgelines at wider scales
+
+```{r ridgel, echo = TRUE, messages = FALSE}
+#| fig-align: "center"
+library(ggplot2)
+library(ggridges)
+im.ridgeline(ex, scale=2, palette="viridis")
+```
+
+## The algorithm
+
+::: {style="text-align: center;"}
+![](../images/matrices.png){fig-align="center" width="50%"}
+:::
+
+## Converting the data to a dataframe
+
+```{r data, echo = TRUE, eval = FALSE}
+df = as.data.frame(img)
+df
+```
+
+::: {style="text-align: center;"}
+![](../images/ridgeline_tab.png){fig-align="center" width="50%"}
+:::
+
+## tidyverse mode
+
+```{r tidy, echo = TRUE, eval = FALSE}
+df = as.data.frame(img, wide=F)
+df
+```
+
+::: {style="text-align: center;"}
+![](../images/ridgeline_tidy.png){fig-align="center" width="30%"}
+:::
+
+## Example
+
+```{r imageRy, echo = TRUE}
+#| fig-align: "center"
+ndvi = im.import("Sentinel2")
+plot(ndvi)
+```
+
+## NDVI data
+
+```{r ndvi, echo = TRUE}
+#| fig-align: "center"
+ndvi
+```
+
+## Ridgeline plots
+
+```{r ridgeline, echo=TRUE, message=FALSE}
+#| fig-align: "center"
+names(ndvi) = c("02_feb", "05_may", "08_aug", "11_nov")
+im.ridgeline(ndvi, scale=1)
+```
+
+## Scale parameter
+
+```{r scale, echo=TRUE, message=FALSE}
+#| fig-align: "center"
+names(ndvi) = c("02_feb", "05_may", "08_aug", "11_nov")
+im.ridgeline(ndvi, scale=2)
+```
+
+## RGB drone imagery
+
+Drone image for the Uccellina zone, University of Siena:
+
+```{r drone, echo = FALSE, warning = FALSE, message = FALSE}
+#| fig-align: "center"
+library(terra)
+drone = rast("/Users/ducciorocchini/Documents/lectures_and_seminars/images/uccellina.png")
+dron=flip(drone)
+plotRGB(drone)
+```
+
+## Ridgeline plots with drone data
+
+```{r ridgedrone, echo = TRUE, warning = FALSE, message = FALSE}
+#| fig-align: "center"
+im.ridgeline(drone, scale=2)
+```
+
+## Putting NA values
+
+```{r dronena, echo = TRUE, warning = FALSE, message = FALSE}
+#| fig-align: "center"
+drone[drone > 250] = NA
+plotRGB(drone)
+```
+
+## Ridgeline plots with drone data - NA values in
+
+```{r ridgedronena, echo = TRUE, warning = FALSE, message = FALSE}
+#| fig-align: "center"
+im.ridgeline(drone, scale=2)
+```
+
+## Light reflectance effects
+
+```{r garden, echo = T, warning = FALSE, message = FALSE}
+#| fig-align: "center"
+library(terra)
+day = rast("../images/giorno.jpeg")
+night = rast("../images/notte.jpeg")
+par(mfrow=c(1,2))
+plot(flip(day))
+plot(flip(night))
+```
+
+## Ridgeline plots under different light conditions
+
+```{r ridgegarden, echo = T, warning = FALSE, message = FALSE}
+#| fig-align: "center"
+library(ggplot2)
+library(ggridges)
+c3 = c(day[[3]], night[[3]])
+im.ridgeline(c3, scale=2)
+```
+
+## Species distributions
+
+::: {style="text-align: center;"}
+![](../images/rocio_decreasing.png){fig-align="center"}
+:::
+
+## Ridgeline plots for species distributions
+
+::: {style="text-align: center;"}
+![](../images/rocio_decreasing_ridge.png){fig-align="center"}
+:::
+
+## Increasing ranges
+
+::: {style="text-align: center;"}
+![](../images/rocio_increasing.png){fig-align="center"}
+:::
+
+## Ridgeline plots for increasing ranges
+
+::: {style="text-align: center;"}
+![](../images/rocio_increasing_ridge.png){fig-align="center"}
+:::
+
+## Colorblindness
+
+```{r colorblindness, echo = T, warning = FALSE, message = FALSE}
+im.ridgeline
+```
+
+## Color ramps
+
+[Viridis package](https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html)
+
+::: {style="text-align: center;"}
+![](../images/viridis.png){fig-align="center"}
+:::
+
+## The cblindplot package
+
+```{r cblindplot, echo = T, warning = FALSE, message = FALSE}
+#| fig-align: "center"
+library(cblindplot)
+citation("cblindplot")
+```
+
+## Good practices for colorblindness
+
+::: {style="text-align: center;"}
+![](../images/environmetrics.png){fig-align="center"}
+:::
+
+## Coda
+
+`im.ridgeline()` will:
+
+-   Enhance **interpretability** of dense satellite datasets
+-   Foster **reproducibility** and **scalability** through open-source tools in R
+
+## Many thanks!
+
+Contact:
+
+Duccio Rocchini, PhD
+
+Full Professor at: BIOME Lab, University of Bologna, Italy
+
+[duccio.rocchini\@unibo.it](mailto:duccio.rocchini@unibo.it){.email}
+
+The presentation was developed using R, Markdown, and Quarto. The open-source code is available at: <https://github.com/ducciorocchini/comec_2025>
