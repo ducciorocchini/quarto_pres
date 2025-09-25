@@ -1,0 +1,217 @@
+---
+title: "Visualizing Earth's pulse: ridgeline plots for satellite data analysis"
+author: Duccio Rocchini
+format:
+  revealjs:
+    self-contained: true
+editor: visual
+---
+
+Motivation
+
+There is a growing need for innovative visual methods to decode Earth’s “pulse”
+
+Problem Statement
+
+How can we intuitively visualize long-term environmental changes across regions?
+
+Need for techniques that highlight temporal structure while retaining spatial identity
+
+Aim
+
+Utilize temporal ridgeline plots to summarize satellite-derived time series
+
+Leverage R powerful geospatial and visualization libraries (e.g., ggplot2, ggridges, terra)
+
+Enable comparative analysis across years, locations, and environmental variables
+
+Communicate complex data trends with clarity and aesthetic appeal
+
+The imageRy package
+
+{r imagery, echo = TRUE}
+library(imageRy)
+citation("imageRy")
+
+Drone images
+
+{r droneo, echo = TRUE}
+#| fig-align: "center"
+library(terra)
+droneo=rast("../images/orto.png")
+droneo=flip(droneo)
+plotRGB(droneo, 1, 2, 3)
+
+Single layer
+
+{r layer, echo = F, eval = T}
+#| fig-align: "center"
+library(terra)
+plot(droneo[[1]])
+
+Ridgeline plot
+
+{r ridgedroneo, echo = F, eval = T}
+#| fig-align: "center"
+library(ggplot2)
+library(ggridges)
+library(imageRy)
+im.ridgeline(droneo[[3]], scale=40)
+
+The first ridgeline plot
+
+Antoine de Saint-Exupéry, Le Petit Prince:
+
+Wider scales
+
+{r ridge, echo = TRUE}
+#| fig-align: "center"
+library(imageRy)
+library(terra)
+ex=im.import("Sentinel2_NDVI_2020-02-21.tif")
+plot(ex)
+
+Ridgelines at wider scales
+
+{r ridgel, echo = TRUE, messages = FALSE}
+#| fig-align: "center"
+library(ggplot2)
+library(ggridges)
+im.ridgeline(ex, scale=2, palette="viridis")
+
+The algorithm
+
+Converting the data to a dataframe
+
+{r data, echo = TRUE, eval = FALSE}
+df = as.data.frame(img)
+df
+
+tidyverse mode
+
+{r tidy, echo = TRUE, eval = FALSE}
+df = as.data.frame(img, wide=F)
+df
+
+Example
+
+{r imageRy, echo = TRUE}
+#| fig-align: "center"
+ndvi = im.import("Sentinel2")
+plot(ndvi)
+
+NDVI data
+
+{r ndvi, echo = TRUE}
+#| fig-align: "center"
+ndvi
+
+Ridgeline plots
+
+{r ridgeline, echo=TRUE, message=FALSE}
+#| fig-align: "center"
+names(ndvi) = c("02_feb", "05_may", "08_aug", "11_nov")
+im.ridgeline(ndvi, scale=1)
+
+Scale parameter
+
+{r scale, echo=TRUE, message=FALSE}
+#| fig-align: "center"
+names(ndvi) = c("02_feb", "05_may", "08_aug", "11_nov")
+im.ridgeline(ndvi, scale=2)
+
+RGB drone imagery
+
+Drone image for the Uccellina zone, University of Siena:
+
+{r drone, echo = FALSE, warning = FALSE, message = FALSE}
+#| fig-align: "center"
+library(terra)
+drone = rast("/Users/ducciorocchini/Documents/lectures_and_seminars/images/uccellina.png")
+dron=flip(drone)
+plotRGB(drone)
+
+Ridgeline plots with drone data
+
+{r ridgedrone, echo = TRUE, warning = FALSE, message = FALSE}
+#| fig-align: "center"
+im.ridgeline(drone, scale=2)
+
+Putting NA values
+
+{r dronena, echo = TRUE, warning = FALSE, message = FALSE}
+#| fig-align: "center"
+drone[drone > 250] = NA
+plotRGB(drone)
+
+Ridgeline plots with drone data - NA values in
+
+{r ridgedronena, echo = TRUE, warning = FALSE, message = FALSE}
+#| fig-align: "center"
+im.ridgeline(drone, scale=2)
+
+Light reflectance effects
+
+{r garden, echo = T, warning = FALSE, message = FALSE}
+#| fig-align: "center"
+library(terra)
+day = rast("../images/giorno.jpeg")
+night = rast("../images/notte.jpeg")
+par(mfrow=c(1,2))
+plot(flip(day))
+plot(flip(night))
+
+Ridgeline plots under different light conditions
+
+{r ridgegarden, echo = T, warning = FALSE, message = FALSE}
+#| fig-align: "center"
+library(ggplot2)
+library(ggridges)
+c3 = c(day[[3]], night[[3]])
+im.ridgeline(c3, scale=2)
+
+Species distributions
+
+Ridgeline plots for species distributions
+
+Increasing ranges
+
+Ridgeline plots for increasing ranges
+
+Colorblindness
+
+{r colorblindness, echo = T, warning = FALSE, message = FALSE}
+im.ridgeline
+
+Color ramps
+
+Viridis package
+
+The cblindplot package
+
+{r cblindplot, echo = T, warning = FALSE, message = FALSE}
+#| fig-align: "center"
+library(cblindplot)
+citation("cblindplot")
+
+Good practices for colorblindness
+
+Coda
+
+im.ridgeline() will:
+
+Enhance interpretability of dense satellite datasets
+
+Foster reproducibility and scalability through open-source tools in R
+
+Many thanks!
+
+Contact:
+
+Duccio Rocchini, PhD
+
+Full Professor at: BIOME Lab, University of Bologna, Italy
+
+duccio.rocchini@unibo.it
+
+The presentation was developed using R, Markdown, and Quarto. The open-source code is available at: https://github.com/ducciorocchini/comec_2025
