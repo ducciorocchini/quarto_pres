@@ -1,0 +1,81 @@
+---
+title: "Decoding biodiversity through spatio-temporal spectral variations"
+author: Duccio Rocchini
+format:
+  revealjs:
+    self-contained: true
+editor: visual
+---
+
+## Aim
+
+To investigate how **spatio-temporal** spectral variations can be used to decode and quantify **patterns of biodiversity** across landscapes.
+
+## Open source
+
+::: {style="text-align: center;"}
+![](../images/tree.png){fig-width="60%" fig-align="center"}
+:::
+
+# Remote sensing
+
+## Sentinel-2
+```{r jav, echo=T, eval=T}
+library(terra)
+alps <- rast("~/Documents/lectures_and_seminars/images/sentinel2_median_2020.tif")
+plotRGB(alps, 2, 3, 3, stretch="lin")
+```
+
+## Extending to NIR
+```{r nir, echo=T, eval=T}
+library(terra)
+plotRGB(alps, 1, 2, 3, stretch="lin")
+```
+
+# Spatial diversity
+
+## Spatial variability
+```{r var, echo=T, eval=T}
+library(terra)
+sd3 <- focal(alps[[1]], w=3, fun=sd, na.rm=TRUE)
+plot(sd3)
+```
+
+## Spatial variability vs species richness
+```{r montepul, echo=F, eval=T}
+# Load the ggplot2 library
+library(ggplot2)
+
+# Create the dataframe with the data
+data <- data.frame(
+  ref = c(0.8, 1, 1.2, 0.7, 1.8, 1.9, 2.3, 2.2, 3.2, 3.6, 3.9, 3.9, 4.8, 4.9, 5, 5.5, 6.2, 7.5, 8.3, 9.8, 10.8, 10),
+  spec = c(0, 0, 0, 0, 8, 12, 8, 26, 5, 15, 5, 8, 14, 20, 30, 22, 45, 28, 55, 35, 32, 36)
+)
+
+# Create the plot with ggplot2 and update axis labels and title in English
+ggplot(data, aes(x = ref, y = spec)) +
+  geom_point(color = "blue", size = 3) + # Blue points
+  geom_smooth(method = "lm", se = TRUE, color = "red") + # Regression line with confidence interval
+  theme_minimal() + # Minimal theme
+  labs(title = "Relationship Between Spectral Variability and Species Richness",
+       x = "Spectral Variability", y = "Species Richness") +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+    axis.title = element_text(size = 14)
+  )
+```
+
+
+# Temporal trends
+
+## Many thanks!
+
+Contact:
+
+Duccio Rocchini, PhD
+
+Full Professor at: BIOME Lab, University of Bologna, Italy
+
+[duccio.rocchini\@unibo.it](mailto:duccio.rocchini@unibo.it){.email}
+
+The presentation was developed using R, Markdown, and Quarto. The open-source code is available at: <https://github.com/ducciorocchini/comec_2025>
