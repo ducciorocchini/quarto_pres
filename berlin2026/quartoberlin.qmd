@@ -7,9 +7,18 @@ format:
 editor: visual
 ---
 
-## Aim
+## Why space, time, and spectra matter
 
-To investigate how **spatio-temporal** spectral variations can be used to decode and quantify **patterns of biodiversity** across landscapes.
+::: {style="text-align: center;"}
+![](../images/era.png){width="80%" align="center"}
+:::
+
+## Aims of this work
+
+-   **Link spectral variation to biodiversity patterns** and ecological processes
+-   **Quantify spatio-temporal spectral variability** across heterogeneous landscapes
+-   **Test neutral and non-neutral expectations** using spatially explicit models
+-   **Provide reproducible tools and workflows** for spatial ecological analysis
 
 ## Open source
 
@@ -19,29 +28,40 @@ To investigate how **spatio-temporal** spectral variations can be used to decode
 
 # Remote sensing
 
+## Google Earth Engine
+
+::: {style="text-align: center;"}
+![](../images/gee.png){width="80%"}
+:::
+
 ## Sentinel-2
+
 ```{r jav, echo=T, eval=T}
 library(terra)
 alps <- rast("~/Documents/lectures_and_seminars/images/sentinel2_median_2020.tif")
-plotRGB(alps, 2, 3, 3, stretch="lin")
+plotRGB(alps, 1, 2, 3, stretch="lin")
 ```
 
 ## Extending to NIR
+
 ```{r nir, echo=T, eval=T}
 library(terra)
-plotRGB(alps, 1, 2, 3, stretch="lin")
+alps <- rast("~/Documents/lectures_and_seminars/images/sentinel2_median_2020_nir.tif")
+plotRGB(alps, 2, 1, 3, stretch="hist")
 ```
 
 # Spatial diversity
 
 ## Spatial variability
+
 ```{r var, echo=T, eval=T}
-library(terra)
-sd3 <- focal(alps[[1]], w=3, fun=sd, na.rm=TRUE)
-plot(sd3)
+library(viridis)
+sd3 <- focal(alps[[1]], w=9, fun=sd, na.rm=TRUE)
+plot(sd3, col = rev(viridis(100)))
 ```
 
 ## Spatial variability vs species richness
+
 ```{r montepul, echo=F, eval=T}
 # Load the ggplot2 library
 library(ggplot2)
@@ -65,8 +85,345 @@ ggplot(data, aes(x = ref, y = spec)) +
   )
 ```
 
+## Animal diversity: height variability
+
+![](../images/bee_height.png){fig-align="center" width="80%"}
+
+Torresani et al. (Scientific Reports, 2025)
+
+## Animal diversity
+
+![](../images/bee_out.png){fig-align="center" width="80%"}
+
+Torresani et al. (Scientific Reports, 2025)
+
+## Fuzzy classification
+
+```{r fuzzy, echo=T, eval=F}
+
+im.fuzzy <- function(input_image, 
+                     num_clusters = 3, 
+                     seed = NULL,
+                     m = 2,                 # fuzzifier (m > 1), m=2 is common
+                     do_plot = TRUE, 
+                     custom_colors = NULL, 
+                     num_colors = 100) {
+
+  # ----------------------------
+  # Checks
+  # ----------------------------
+  if (!inherits(input_image, "SpatRaster")) {
+    stop("input_image should be a SpatRaster object.")
+  }
+
+  nlyr <- terra::nlyr(input_image)
+  if (nlyr < 1) {
+    stop("input_image must have at least 1 band.")
+  }
+
+  if (m <= 1) {
+    stop("Fuzzifier 'm' must be > 1 (e.g., m = 2).")
+  }
+
+  base_colors <- c("khaki", "slateblue", "olivedrab", "salmon",
+                   "lightpink", "darkgrey")
+
+  colors <- if (is.null(custom_colors)) {
+    if (num_clusters > length(base_colors)) {
+      grDevices::colorRampPalette(base_colors)(num_clusters)
+    } else {
+      base_colors[1:num_clusters]
+    }
+  } else {
+    if (num_clusters > length(custom_colors)) {
+      grDevices::colorRampPalette(custom_colors)(num_clusters)
+    } else {
+      custom_colors[1:num_clusters]
+    }
+  }
+
+  # ----------------------------
+  # Extract pixel values
+  # ----------------------------
+  image_values <- terra::as.matrix(input_image)  # n_pixels x n_bands
+
+  # VALID pixels: keep only rows where ALL bands are non-NA
+  # (safer than assuming band-1 NA pattern)
+  valid_idx <- stats::complete.cases(image_values)
+
+  image_values_non_na <- image_values[valid_idx, , drop = FALSE]
+
+  if (nrow(image_values_non_na) == 0) {
+    stop("No valid pixels found (all rows contain NA in at least one band).")
+  }
+
+  # ----------------------------
+  # Scale each band to 0–255
+  # ----------------------------
+  # Guard against constant bands (max == min)
+  for (i in seq_len(ncol(image_values_non_na))) {
+    min_val <- min(image_values_non_na[, i], na.rm = TRUE)
+    max_val <- max(image_values_non_na[, i], na.rm = TRUE)
+
+    if (!is.finite(min_val) || !is.finite(max_val)) {
+      stop("Non-finite values detected in band ", i, ".")
+    }
+
+    if (max_val == min_val) {
+      # constant band: set to 0 (or you could drop the band)
+      image_values_non_na[, i] <- 0
+    } else {
+      image_values_non_na[, i] <- 255 * (image_values_non_na[, i] - min_val) / (max_val - min_val)
+    }
+  }
+
+  # ----------------------------
+  # K-means clustering
+  # ----------------------------
+  if (!is.null(seed)) set.seed(seed)
+
+  kmeans_result <- stats::kmeans(image_values_non_na, centers = num_clusters)
+  centers <- kmeans_result$centers  # num_clusters x n_bands
+
+  # ----------------------------
+  # Distances to each cluster
+  # ----------------------------
+  n_pixels_non_na <- nrow(image_values_non_na)
+  dist_matrix <- matrix(NA_real_, nrow = n_pixels_non_na, ncol = num_clusters)
+
+  for (k in seq_len(num_clusters)) {
+    diff_k <- sweep(image_values_non_na, 2, centers[k, ], FUN = "-")
+    dist_matrix[, k] <- sqrt(rowSums(diff_k^2))
+  }
+
+  # ----------------------------
+  # Fuzzy memberships from distances
+  # ----------------------------
+  exponent <- 2 / (m - 1)
+  membership_matrix <- matrix(NA_real_, nrow = n_pixels_non_na, ncol = num_clusters)
+
+  for (i in seq_len(n_pixels_non_na)) {
+    d_i <- dist_matrix[i, ]
+
+    # Handle exact centroid matches (distance 0)
+    if (any(d_i == 0)) {
+      u_i <- rep(0, num_clusters)
+      zero_idx <- which(d_i == 0)
+      u_i[zero_idx] <- 1 / length(zero_idx)
+    } else {
+      ratio <- outer(d_i, d_i, "/")^exponent
+      denom <- rowSums(ratio)
+      u_i <- 1 / denom
+    }
+
+    membership_matrix[i, ] <- u_i
+  }
+
+  # ----------------------------
+  # Build rasters (template geometry)
+  # ----------------------------
+  template <- input_image[[1]]
+  template_vals <- terra::values(template)
+
+  # We must map back into full-length vector of cells
+  # valid_idx is in "matrix row" order which corresponds to terra::values order.
+  # Create full vectors (Ncells) and fill only valid cells.
+  distance_layers <- vector("list", num_clusters)
+  membership_layers <- vector("list", num_clusters)
+
+  for (k in seq_len(num_clusters)) {
+    # Distances
+    r_d <- template
+    vals_d <- rep(NA_real_, length(template_vals))
+    vals_d[valid_idx] <- dist_matrix[, k]
+    terra::values(r_d) <- vals_d
+    distance_layers[[k]] <- r_d
+
+    # Memberships
+    r_m <- template
+    vals_m <- rep(NA_real_, length(template_vals))
+    vals_m[valid_idx] <- membership_matrix[, k]
+    terra::values(r_m) <- vals_m
+    membership_layers[[k]] <- r_m
+  }
+
+  distance_rast <- terra::rast(distance_layers)
+  names(distance_rast) <- paste0("class_", seq_len(num_clusters), "_distance")
+
+  membership_rast <- terra::rast(membership_layers)
+  names(membership_rast) <- paste0("class_", seq_len(num_clusters), "_membership")
+
+  # ----------------------------
+  # Plot (memberships)
+  # ----------------------------
+  if (do_plot) {
+    terra::plot(membership_rast, axes = FALSE, main = names(membership_rast))
+  }
+
+  # ----------------------------
+  # Return
+  # ----------------------------
+  list(
+    distances   = distance_rast,
+    memberships = membership_rast,
+    centers     = centers
+  )
+}
+
+```
+
+## Spatial variability via classification
+
+::: {style="text-align: center;"}
+![](../images/3classes.png){width="60%"}
+:::
+
+## Classes overlap
+
+::: {style="text-align: center;"}
+![](../images/3classes_rgb.png){width="60%"}
+:::
 
 # Temporal trends
+
+## Multitemporal data
+
+```{r ndvi, echo = TRUE}
+#| fig-align: "center"
+library(imageRy)
+ndvi <- im.import("NDVI_2020")
+plot(ndvi)
+```
+
+## Ridgeline plots
+
+```{r ridgeline, echo=TRUE, message=FALSE}
+#| fig-align: "center"
+names(ndvi) = c("02_feb", "05_may", "08_aug", "11_nov")
+im.ridgeline(ndvi, scale=1)
+```
+
+## Scale parameter
+
+```{r scale, echo=TRUE, message=FALSE}
+#| fig-align: "center"
+names(ndvi) = c("02_feb", "05_may", "08_aug", "11_nov")
+im.ridgeline(ndvi, scale=2)
+```
+
+## Species distributions
+
+::: {style="text-align: center;"}
+![](../images/rocio_decreasing.png){fig-align="center"}
+:::
+
+## Ridgeline plots for species distributions
+
+::: {style="text-align: center;"}
+![](../images/rocio_decreasing_ridge.png){fig-align="center"}
+:::
+
+## Increasing ranges
+
+::: {style="text-align: center;"}
+![](../images/rocio_increasing.png){fig-align="center"}
+:::
+
+## Ridgeline plots for increasing ranges
+
+::: {style="text-align: center;"}
+![](../images/rocio_increasing_ridge.png){fig-align="center"}
+:::
+
+## Cellular automata via the cellulaR package
+
+::: {style="text-align: center;"}
+![](../images/cellulaR_git.png){width="60%" fig-align="center"}
+:::
+
+## Cellular automata
+
+```{r cellula, echo=T, eval=T}
+library(cellulaR)
+neutral_plot <- c.neutral(num_iterations = 50, plot_interval = 10)
+neutral_plot
+```
+
+## Considering spatial heterogeneity
+
+```{r hetero, echo=T, eval=T}
+# Spread on a heterogeneous (fractal) landscape
+res <- c.weighted(seed = 42)
+res$forest_evolution
+```
+
+## Neutral models
+
+![](../images/neutRal.png){fig-align="center"}
+
+<https://github.com/ducciorocchini/neutRal>
+
+## Immigration and speciation rates
+
+```{r immi, eval=F, echo=TRUE, message=FALSE}
+library(neutRal)
+
+# Run simulation
+sim <- simulate_neutral_grid(
+  n = 80,
+  steps = 200000,
+  m = 0.01,
+  nu = 0.001,
+  seed = 1
+)
+
+# Plot final community state
+plot_neutral_grid(
+  grid  = sim$grid,
+  n     = sim$params$n,
+  steps = sim$params$steps,
+  m     = sim$params$m,
+  nu    = sim$params$nu
+)
+```
+
+## Neutral theory
+
+![](../images/effects.png){fig-align="center"}
+
+# Image rendering and scientific inclusiveness in biodiversity data
+
+## Colorblindness
+
+```{r colorblindness, echo = T, warning = FALSE, message = FALSE}
+im.ridgeline
+```
+
+## Color ramps
+
+[Viridis package](https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html)
+
+::: {style="text-align: center;"}
+![](../images/viridis.png){fig-align="center"}
+:::
+
+## The cblindplot package
+
+```{r cblindplot, echo = T, warning = FALSE, message = FALSE}
+#| fig-align: "center"
+library(cblindplot)
+citation("cblindplot")
+```
+
+## The cblindplot package in GitHub
+
+![](../images/twitter_cblindplot.png){fig-align="center"}
+
+## Good practices for colorblindness
+
+::: {style="text-align: center;"}
+![](../images/environmetrics.png){fig-align="center"}
+:::
 
 ## Many thanks!
 
@@ -78,4 +435,4 @@ Full Professor at: BIOME Lab, University of Bologna, Italy
 
 [duccio.rocchini\@unibo.it](mailto:duccio.rocchini@unibo.it){.email}
 
-The presentation was developed using R, Markdown, and Quarto. The open-source code is available at: <https://github.com/ducciorocchini/comec_2025>
+The presentation was developed using R, Markdown, and Quarto. The open-source code is available at: <https://github.com/ducciorocchini/quarto_pres/tree/main/berlin2026>
