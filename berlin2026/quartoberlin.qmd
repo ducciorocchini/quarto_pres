@@ -13,12 +13,14 @@ editor: visual
 ![](../images/era.png){width="80%" align="center"}
 :::
 
-## Aims of this work
+## Aim
 
+::: incremental
 -   **Link spectral variation to biodiversity patterns** and ecological processes
 -   **Quantify spatio-temporal spectral variability** across heterogeneous landscapes
 -   **Test neutral and non-neutral expectations** using spatially explicit models
 -   **Provide reproducible tools and workflows** for spatial ecological analysis
+:::
 
 ## Open source
 
@@ -28,10 +30,14 @@ editor: visual
 
 # Remote sensing
 
+## Basics
+
+![](images/basics_era_tiergarten.png){fig-align="center"}
+
 ## Google Earth Engine
 
 ::: {style="text-align: center;"}
-![](../images/gee.png){width="80%"}
+![](../images/gee.png){fig-align="center" width="80%"}
 :::
 
 ## Sentinel-2
@@ -56,8 +62,17 @@ plotRGB(alps, 2, 1, 3, stretch="hist")
 
 ```{r var, echo=T, eval=T}
 library(viridis)
+library(terra)
 sd3 <- focal(alps[[1]], w=9, fun=sd, na.rm=TRUE)
 plot(sd3, col = rev(viridis(100)))
+```
+
+## In-situ species richness
+
+```{r sr, echo=T, eval=T}
+plot(sd3, col = rev(viridis(100)))
+pts <- spatSample(sd3, 22, method = "random", as.points = TRUE)
+points(pts, pch = 16, col = "black", cex = 2)
 ```
 
 ## Spatial variability vs species richness
@@ -96,6 +111,42 @@ Torresani et al. (Scientific Reports, 2025)
 ![](../images/bee_out.png){fig-align="center" width="80%"}
 
 Torresani et al. (Scientific Reports, 2025)
+
+## Beta-diversity
+
+![](../images/beta_diversity.png){width="80%\" align" fig-align="center"}
+
+## Congo forest
+
+![](../images/gee_congo.png){width="80%\" align" fig-align="center"}
+
+## PCA
+
+``` r
+library(terra)
+library(imageRy)
+pc <- im.pca(sentinel_congo)
+plotRGB(pc, 1,2,3, stretch="hist")
+```
+
+![](images/congo_pca.png){width="80%\" align" fig-align="center"}
+
+## In-situ sampling
+
+``` r
+pts <- spatSample(pc, 100, method = "random", as.points = TRUE)
+points(pts, pch = 16, col = "black", cex = 0.6)
+```
+
+![](../images/insitu.png){width="80%\" align" fig-align="center"}
+
+## Accumulation curves
+
+![](images/rarefaction.png){width="80%\" align" fig-align="center"}
+
+## Spectral species
+
+![](images/spectral_species_chat.png){width="80%\" align" fig-align="center"}
 
 ## Fuzzy classification
 
@@ -415,6 +466,18 @@ library(cblindplot)
 citation("cblindplot")
 ```
 
+## Theoretical result
+
+::: {style="text-align: center;"}
+![](../images/alien_daltonic.png){align="center" width="90%"}
+:::
+
+## Empirical result
+
+::: {style="text-align: center;"}
+![](../images/rasterdiv_strict_highres2.png){align="center" width="60%"}
+:::
+
 ## The cblindplot package in GitHub
 
 ![](../images/twitter_cblindplot.png){fig-align="center"}
@@ -423,6 +486,21 @@ citation("cblindplot")
 
 ::: {style="text-align: center;"}
 ![](../images/environmetrics.png){fig-align="center"}
+:::
+
+## Coda
+
+::: incremental
+- **Spectral variability** is an observable imprint of **ecological structure** and **processes**  
+- **Space** and **time** are not noise, but essential dimensions of **biodiversity**  
+- **Models** help disentangle **neutral dynamics** from **environmental constraints**  
+- **Open, reproducible workflows** are key to **inclusive** and **scalable biodiversity science**
+:::
+
+## A coding friend
+
+::: {style="text-align: center;"}
+![](images/r_coding.jpeg){align="center" fig-align="center" width="35%"}
 :::
 
 ## Many thanks!
