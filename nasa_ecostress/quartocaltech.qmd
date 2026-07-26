@@ -1,0 +1,306 @@
+---
+format:
+  revealjs:
+    center: false
+    self-contained: true
+editor: source
+
+include-in-header:
+  text: |
+    <style>
+
+    /* ---------- Title slide ---------- */
+
+    .reveal .title-slide-custom {
+      text-align: center;
+    }
+
+    .reveal .title-slide-custom h2 {
+      text-align: center;
+      margin-bottom: 0.6em;
+    }
+
+    .reveal .title-slide-custom .author {
+      font-size: 1.2em;
+      margin-bottom: 0.3em;
+    }
+
+    .reveal .title-slide-custom .affiliation {
+      font-size: 0.9em;
+      margin-bottom: 1em;
+    }
+
+    .reveal .title-slide-custom .event {
+      font-size: 1em;
+      margin-bottom: 1em;
+    }
+
+    /* ---------- Title image ---------- */
+
+    .reveal .title-slide-custom .title-image {
+      display: block;
+      width: 100%;
+      max-width: none;
+      height: auto;
+      margin: 1.5em auto 0 auto;
+    }
+
+    </style>
+---
+
+## From Pixels to Distributions: A New Way to Visualize Raster Data in R {.title-slide-custom}
+
+<div class="author">
+Duccio Rocchini
+</div>
+
+<div class="affiliation">
+Alma Mater Studiorum University of Bologna, Italy
+</div>
+
+<br> <!-- linee vuote html -->
+
+<div class="event">
+Presentation held online at:
+</div>
+
+![](../images/ecostress_2.png){.title-image}
+
+---
+
+## The problem
+
+::: {style="text-align: center;"}
+![](../images/rasters_vs_distributions.png){width="80%"}
+:::
+
+
+
+## Why this matters for raster data
+
+::: {style="text-align: center;"}
+![](../images/rasters_everywhere.png){width="90%"}
+:::
+
+
+## Current gap
+
+Distribution plots are common in R:
+
+- `ggplot2`
+- `ggridges`
+- `ggdist`
+- `plotly`
+
+But they are mostly designed for **tabular data**.
+
+::: {.takehome}
+Raster users often need custom scripts to convert rasters into data frames before visualization.
+:::
+
+## Aim of the framework
+
+::: {.large-center}
+Create a unified workflow for **distribution-based visualization of geographical rasters** directly in R.
+:::
+
+The framework is implemented in the open-source package:
+
+::: {.package}
+`imageRy`
+:::
+
+available at:
+<https://github.com/ducciorocchini/imageRy>
+
+
+::: {style="text-align: center;"}
+![](../images/imageRy.png){width="20%"}
+:::
+
+## Outline of the workflow
+
+::: {style="text-align: center;"}
+![](../images/framework.png){width="80%"}
+:::
+
+## Three complementary functions
+
+| Function | Purpose |
+|-----------|---------|
+| `im.ridgeline()` | Compare distributions among raster layers |
+| `im.boxplot.layers()` | Compare medians, spread and densities among layers |
+| `im.boxplot.classes()` | Compare distributions among spatial classes |
+|||
+
+Together, these functions provide a comprehensive **framework for distribution-based exploration** of raster data.
+
+# 1. Global exploration
+
+## Global exploration
+
+::: {style="text-align: center;"}
+![](../images/im_ridgeline.png){width="80%"}
+:::
+
+
+## Empirical example: monthly NDVI
+
+```{r echo=T}
+library(terra)
+ls <- list.files(
+  "~/Documents/ridgeline_plots/perduccio/ndvi",
+  pattern = "\\.tif$",
+  full.names = TRUE
+)
+ndvi <- rast(ls)
+plot(ndvi)
+```
+
+## Ridgelines reveal the seasonal signal
+
+```{r, echo=T}
+library(imageRy)
+im.ridgeline(ndvi, scale=2, palette="viridis")
+```
+
+## Names
+
+```{r, echo=T}
+names(ndvi) <- c("01-Jan", "02-Feb", "03-Mar", "04-Apr", "05-May", "06-Jun", "07-Jul", "08-Aug", "09-Sep", "10-Oct", "11-Nov", "12-Dec") 
+im.ridgeline(ndvi, scale=2, palette="viridis")
+```
+
+## Scale
+```{r, echo=T}
+names(ndvi) <- c("01-Jan", "02-Feb", "03-Mar", "04-Apr", "05-May", "06-Jun", "07-Jul", "08-Aug", "09-Sep", "10-Oct", "11-Nov", "12-Dec") 
+im.ridgeline(ndvi, scale=4, palette="viridis")
+```
+
+# 2. Layer-wise statistical comparison
+
+## Outline
+::: {style="text-align: center;"}
+![](../images/framework.png){width="80%"}
+:::
+
+## Layer-wise statistical comparison
+
+::: {style="text-align: center;"}
+![](../images/kernel_boxplot.png){width="80%"}
+:::
+
+## Empirical example: species distribution spread
+
+## Rocio 2
+
+# 3. Spatial comparison
+
+## Outline
+::: {style="text-align: center;"}
+![](../images/framework.png){width="80%"}
+:::
+
+## Spatial comparison
+
+::: {style="text-align: center;"}
+![](../images/classes.png){width="80%"}
+:::
+
+## 3. Class-wise distribution
+
+::: {style="text-align: center;"}
+![](../images/classwise.png){width="80%"}
+:::
+
+## Empirical example: drone imagery
+
+```{r, echo=T}
+canale <- rast("~/Documents/lectures_and_seminars/images/canale_aquila.JPG")
+plot(canale)
+```
+
+## Empirical example: classified image
+
+```{r, echo=T}
+classcanale <- im.classify(canale, num_clusters=4)
+```
+
+
+## Empirical example: final kernel-density boxplot
+
+```{r, echo=T, eval=FALSE}
+library(imageRy)
+im.boxplot.classes(canale, classcanale, density=TRUE, layer=1)
+```
+
+::: {style="text-align: center;"}
+![](../images/boxplotclasses.png){width="40%"}
+:::
+
+
+## Methodological contribution
+
+The framework provides a progressive workflow:
+
+::: {.flow}
+`SpatRaster` → `im.ridgeline()` → `im.boxplot.layers()` → `im.classify()` → `im.boxplot.classes()`
+:::
+
+It integrates:
+
+- **raster-native** workflows
+- **reproducible R code**
+
+## Coda
+
+Distribution-based visualization complements map-based analysis by showing information that maps often hide.
+
+The framework helps users move from:
+
+1. **global distribution** exploration
+2. statistically informed **layer comparison**
+3. spatially explicit **class-wise interpretation**
+
+::: {.takehome}
+The main value is not a single plot, but a coherent exploratory workflow for raster data.
+:::
+
+## Visualization and colorblndness
+
+::: {style="text-align: center;"}
+![](../images/cblindplot_ex.png){width="40%"}
+:::
+
+Rocchini et al. (2026). Under the mantra: ‘Make use of colorblind friendly graphs’. Environmetrics, e2877. <https://doi.org/10.1002/env.2877>
+
+`cblindplot` package available at: <https://github.com/ducciorocchini/cblindplot>
+
+## Interested in `imageRy`?
+
+::: {style="text-align: center;"}
+![](../images/imageRy_ms.png){width="90%"}
+:::
+
+## R companion
+
+::: {style="text-align: center;"}
+![](../images/R_coding.png){width="35%"}
+:::
+
+## Many thanks!
+
+Contact:
+
+Duccio Rocchini, PhD
+
+Full Professor at: BIOME Lab, University of Bologna, Italy
+
+[duccio.rocchini\@unibo.it](mailto:duccio.rocchini@unibo.it){.email}
+
+This presentation has been developed using R, Markdown, and Quarto. The open-source code is available at:
+
+::: {style="text-align: center;"}
+![](../images/github_profile_qr.png){align="center" fig-align="center" width="20%"}
+:::
+
