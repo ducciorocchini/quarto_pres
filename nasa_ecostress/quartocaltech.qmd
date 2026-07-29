@@ -48,7 +48,9 @@ include-in-header:
     </style>
 ---
 
-## From Pixels to Distributions: A New Way to Visualize Raster Data in R {.title-slide-custom}
+## imageRy: A Statistical Framework for Exploring Spectral Imagery {.title-slide-custom}
+
+<!-- Alternative title: From Pixels to Distributions: A New Way to Visualize Raster Data in R -->
 
 <div class="author">
 Duccio Rocchini
@@ -124,10 +126,11 @@ available at:
 ![](../images/framework.png){width="80%"}
 :::
 
-## Three complementary functions
+## Four complementary functions
 
 | Function | Purpose |
 |-----------|---------|
+| `im.levelplot()` | Visualize raster layers distributions |
 | `im.ridgeline()` | Compare distributions among raster layers |
 | `im.boxplot.layers()` | Compare medians, spread and densities among layers |
 | `im.boxplot.classes()` | Compare distributions among spatial classes |
@@ -135,9 +138,95 @@ available at:
 
 Together, these functions provide a comprehensive **framework for distribution-based exploration** of raster data.
 
-# 1. Global exploration
+## `imageRy` structure
+``` text
+imageRy/
+├── R/
+│   ├── im.barplot.R
+│   ├── im.bivariate.R
+│   ├── im.boxplot.classes.R
+│   ├── im.boxplot.layers.R
+│   ├── im.classify.R
+│   ├── im.dvi.R
+│   ├── im.export.R
+│   ├── im.fuzzy.R
+│   ├── im.ggplot.R
+│   ├── im.ggplotRGB.R
+│   ├── im.import.R
+│   ├── im.kernel.R
+│   ├── im.levelplot.R
+│   ├── im.list.R
+│   ├── im.multiframe.R
+│   ├── im.ndvi.R
+│   ├── im.pairs.R
+│   ├── im.pca.R
+│   ├── im.plotRGB.R
+│   ├── im.plotRGB.auto.R
+│   ├── im.print.R
+│   ├── im.refresh.R
+│   └── im.ridgeline.R
+│
+├── inst/
+│   └── images/
+│       └── example remotely sensed raster datasets
+│
+├── man/
+│   ├── im.barplot.Rd
+│   ├── im.bivariate.Rd
+│   ├── im.boxplot.classes.Rd
+│   ├── im.boxplot.layers.Rd
+│   ├── im.classify.Rd
+│   ├── im.dvi.Rd
+│   ├── im.export.Rd
+│   ├── im.fuzzy.Rd
+│   ├── im.ggplot.Rd
+│   ├── im.ggplotRGB.Rd
+│   ├── im.import.Rd
+│   ├── im.kernel.Rd
+│   ├── im.levelplot.Rd
+│   ├── im.list.Rd
+│   ├── im.multiframe.Rd
+│   ├── im.ndvi.Rd
+│   ├── im.pairs.Rd
+│   ├── im.pca.Rd
+│   ├── im.plotRGB.Rd
+│   ├── im.plotRGB.auto.Rd
+│   ├── im.print.Rd
+│   ├── im.refresh.Rd
+│   └── im.ridgeline.Rd
+│
+├── tests/
+│   └── testthat/
+│       └── test-*.R
+│
+├── vignettes/
+│   └── imageRy.Rmd
+│
+├── DESCRIPTION
+├── NAMESPACE
+├── README.md
+└── data_description.md
+```
 
-## Global exploration
+# 1. Spatial exploration
+
+## Sptial exploration by `im.levelplot()`
+
+```{r, echo=T, eval=F}
+im.levelplot(blet, layer = 3, custom_colors = "mako", margin = "median")
+```
+::: {style="text-align: center;"}
+![](../images/levelplot.png){width="50%"}
+:::
+
+# 2. Layer-wise distribution exploration
+
+## Outline
+::: {style="text-align: center;"}
+![](../images/framework.png){width="80%"}
+:::
+
+## Layer-wise distribution exploration
 
 ::: {style="text-align: center;"}
 ![](../images/im_ridgeline.png){width="80%"}
@@ -190,11 +279,144 @@ im.ridgeline(ndvi, scale=4, palette="viridis")
 ![](../images/kernel_boxplot.png){width="80%"}
 :::
 
-## Empirical example: species distribution spread
+## Empirical example: species distribution spread (code)
+```{r, echo=T, eval=F}
+# packages
+library(terra)         # for SpatRaster and c()
+library(virtualspecies)
+library(imageRy)
+library(geodata)
+library(ggplot2)
+library(viridis)
 
-## Rocio 2
+# climate (WorldClim v2.1 at 0.5 arc-min)
+tmin <- worldclim_country("Lux", "tmin", path = tempdir(), res = 0.5, version = "2.1")
+tmax <- worldclim_country("Lux", "tmax", path = tempdir(), res = 0.5, version = "2.1")
+prec <- worldclim_country("Lux", "prec", path = tempdir(), res = 0.5, version = "2.1")
 
-# 3. Spatial comparison
+# July layers
+tmin_jul <- tmin[[7]]
+tmax_jul <- tmax[[7]]
+prec_jul <- prec[[7]]
+
+# environmental stack
+env_stack_base <- c(tmin_jul, tmax_jul, prec_jul)
+names(env_stack_base) <- c("tmin", "tmax", "prec")
+summary(env_stack_base)
+
+# 1) Species response curves consistent with the area's summary (tmin~12, tmax~22, prec~75):
+#    - dec: prefers cooler & drier -> worsens with warming/wetting
+#    - inc: prefers warmer & wetter -> improves with warming/wetting
+#    - stab: broad tolerance around current values -> roughly stable
+curve_list <- list(
+  dec  = formatFunctions( # decreasing: slightly cooler/drier than 2000
+    tmin = c(fun="dnorm", mean=11.5, sd=1.2),
+    tmax = c(fun="dnorm", mean=21.0, sd=1.5),
+    prec = c(fun="dnorm", mean=70,   sd=6)
+  ),
+  inc  = formatFunctions( # increasing: slightly warmer/wetter than 2000
+    tmin = c(fun="dnorm", mean=13.5, sd=1.2),
+    tmax = c(fun="dnorm", mean=24.0, sd=1.5),
+    prec = c(fun="dnorm", mean=82,   sd=6)
+  ),
+  stab = formatFunctions( # stable: centered and tolerant
+    tmin = c(fun="dnorm", mean=12.0, sd=3.5),
+    tmax = c(fun="dnorm", mean=22.0, sd=3.5),
+    prec = c(fun="dnorm", mean=75,   sd=12)
+  )
+)
+
+# 2) Parametric climate change: default ~ +0.2 °C/year and +0.5 precip units/year
+get_env_for_year <- function(year, base_stack,
+                             dt_tmin = 0.2,  # °C/year
+                             dt_tmax = 0.2,  # °C/year
+                             dt_prec = 0.5   # precip units/year (same units as 'prec')
+) {
+  d <- year - 2000
+  r <- if (inherits(base_stack, "SpatRaster")) base_stack else terra::rast(base_stack)
+  r[["tmin"]] <- r[["tmin"]] + dt_tmin * d
+  r[["tmax"]] <- r[["tmax"]] + dt_tmax * d
+  r[["prec"]] <- r[["prec"]] + dt_prec * d
+  r
+}
+
+# 3) Simulation: returns a stack per species (layers = years), values in [0,1]
+simulate_three_species <- function(env_stack_base,
+                                   years = 2000:2020,
+                                   curves = curve_list,
+                                   seed = 8888,
+                                   dt_tmin = 0.2, dt_tmax = 0.2, dt_prec = 0.5,
+                                   rescale = TRUE) {
+  set.seed(seed)
+  base_spat <- if (inherits(env_stack_base, "SpatRaster")) env_stack_base else terra::rast(env_stack_base)
+  
+  get_suit <- function(vs_obj) if (is.list(vs_obj) && "suitab.raster" %in% names(vs_obj)) vs_obj$suitab.raster else vs_obj
+  
+  out <- vector("list", length(curves))
+  names(out) <- names(curves)
+  
+  for (nm in names(curves)) {
+    stk <- NULL
+    for (yr in years) {
+      env_y <- get_env_for_year(yr, base_spat, dt_tmin, dt_tmax, dt_prec)
+      vs    <- virtualspecies::generateSpFromFun(env_y, parameters = curves[[nm]], rescale = rescale)
+      s     <- get_suit(vs)
+      s     <- if (inherits(s, "SpatRaster")) s else terra::rast(s)
+      names(s) <- paste0("y", yr)
+      stk <- if (is.null(stk)) s else c(stk, s)
+    }
+    out[[nm]] <- stk
+  }
+  out
+}
+
+species_suitability <- simulate_three_species(
+  env_stack_base,
+  years   = 2000:2005,                 # or 2000:2020
+  curves  = curve_list,
+  dt_tmin = 0.30, dt_tmax = 0.30,      # ~ +1.5 °C in 5 years
+  dt_prec = 1.0,                       # ~ +5 in 5 years
+  rescale = TRUE                       # important, avoids collapse to ~0
+)
+
+plot(species_suitability$inc)   # SpatRaster: layers y2000..y2020 (increasing species)
+plot(species_suitability$inc, col=rocket(100))
+
+#-----
+
+
+# boxplot
+
+im.boxplot.layers(species_suitability$inc,
+   density = TRUE,
+   median_labels = TRUE,
+   limits = c(0.01, 0.99),
+   custom_colors = viridis::viridis(4, end = 0.5)
+ )
+```
+
+## Example: species distribution
+
+::: {style="text-align: center;"}
+![](../images/species.png){width="80%"}
+:::
+
+## Boxplot and kernel density
+```{r, echo=T, eval=F}
+im.boxplot.layers(species_suitability$inc,
+   density = TRUE,
+   median_labels = TRUE,
+   limits = c(0.01, 0.99),
+   custom_colors = viridis::viridis(4, end = 0.5)
+ )
+```
+
+::: {style="text-align: center;"}
+![](../images/boxplot_species.png){width="50%"}
+:::
+
+
+# 3. Class-wise comparison
 
 ## Outline
 ::: {style="text-align: center;"}
@@ -207,7 +429,7 @@ im.ridgeline(ndvi, scale=4, palette="viridis")
 ![](../images/classes.png){width="80%"}
 :::
 
-## 3. Class-wise distribution
+## Class-wise comparison
 
 ::: {style="text-align: center;"}
 ![](../images/classwise.png){width="80%"}
@@ -266,7 +488,7 @@ The framework helps users move from:
 The main value is not a single plot, but a coherent exploratory workflow for raster data.
 :::
 
-## Visualization and colorblndness
+## Visualization and colorblindness
 
 ::: {style="text-align: center;"}
 ![](../images/cblindplot_ex.png){width="40%"}
