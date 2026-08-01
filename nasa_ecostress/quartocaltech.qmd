@@ -48,98 +48,76 @@ include-in-header:
     </style>
 ---
 
-## imageRy: A Statistical Framework for Exploring Spectral Imagery {.title-slide-custom}
+imageRy: A Statistical Framework for Exploring Spectral Imagery
 
 <!-- Alternative title: From Pixels to Distributions: A New Way to Visualize Raster Data in R -->
 
-<div class="author">
 Duccio Rocchini
-</div>
 
-<div class="affiliation">
 Alma Mater Studiorum University of Bologna, Italy
-</div>
 
 <br> <!-- linee vuote html -->
 
-<div class="event">
 Presentation held online at:
-</div>
-
-![](../images/ecostress_2.png){.title-image}
-
----
-
-## The problem
-
-::: {style="text-align: center;"}
-![](../images/rasters_vs_distributions.png){width="80%"}
-:::
 
 
 
-## Why this matters for raster data
+The problem
 
-::: {style="text-align: center;"}
-![](../images/rasters_everywhere.png){width="90%"}
-:::
+Why this matters for raster data
 
-
-## Current gap
+Current gap
 
 Distribution plots are common in R:
 
-- `ggplot2`
-- `ggridges`
-- `ggdist`
-- `plotly`
+ggplot2
 
-But they are mostly designed for **tabular data**.
+ggridges
 
-::: {.takehome}
+ggdist
+
+plotly
+
+But they are mostly designed for tabular data.
+
 Raster users often need custom scripts to convert rasters into data frames before visualization.
-:::
 
-## Aim of the framework
+Aim of the framework
 
-::: {.large-center}
-Create a unified workflow for **distribution-based visualization of geographical rasters** directly in R.
-:::
+Create a unified workflow for distribution-based visualization of geographical rasters directly in R.
 
 The framework is implemented in the open-source package:
 
-::: {.package}
-`imageRy`
-:::
+imageRy
 
-available at:
-<https://github.com/ducciorocchini/imageRy>
+available at: https://github.com/ducciorocchini/imageRy
 
+Outline of the workflow
 
-::: {style="text-align: center;"}
-![](../images/imageRy.png){width="20%"}
-:::
+Four complementary functions
 
-## Outline of the workflow
+Function
 
-::: {style="text-align: center;"}
-![](../images/framework.png){width="80%"}
-:::
+Purpose
 
-## Four complementary functions
+im.levelplot()
 
-| Function | Purpose |
-|-----------|---------|
-| `im.levelplot()` | Visualize raster layers distributions |
-| `im.ridgeline()` | Compare distributions among raster layers |
-| `im.boxplot.layers()` | Compare medians, spread and densities among layers |
-| `im.boxplot.classes()` | Compare distributions among spatial classes |
-|||
+Visualize raster layers distributions
 
-Together, these functions provide a comprehensive **framework for distribution-based exploration** of raster data.
+im.ridgeline()
 
-## `imageRy` structure
-``` text
+Compare distributions among raster layers
+
+im.boxplot.layers()
+
+Compare medians, spread and densities among layers
+
+im.boxplot.classes()
+
+Compare distributions among spatial classes
+
+imageRy structure
+
 imageRy/
 ├── R/
 │   ├── im.barplot.R
@@ -206,81 +184,54 @@ imageRy/
 ├── NAMESPACE
 ├── README.md
 └── data_description.md
-```
 
-# 1. Spatial exploration
+1. Spatial exploration
 
-## Sptial exploration by `im.levelplot()`
+Spatial exploration by im.levelplot()
 
-```{r, echo=T, eval=F}
+{r, echo=T, eval=F}
 im.levelplot(blet, layer = 3, custom_colors = "mako", margin = "median")
-```
-::: {style="text-align: center;"}
-![](../images/levelplot.png){width="50%"}
-:::
 
-# 2. Layer-wise distribution exploration
+2. Layer-wise distribution exploration
 
-## Outline
-::: {style="text-align: center;"}
-![](../images/framework.png){width="80%"}
-:::
+Outline
 
-## Layer-wise distribution exploration
+Layer-wise distribution exploration
 
-::: {style="text-align: center;"}
-![](../images/im_ridgeline.png){width="80%"}
-:::
+Empirical example: monthly NDVI
 
-
-## Empirical example: monthly NDVI
-
-```{r echo=T}
+{r, echo=T}
 library(terra)
-ls <- list.files(
-  "~/Documents/ridgeline_plots/perduccio/ndvi",
-  pattern = "\\.tif$",
-  full.names = TRUE
-)
-ndvi <- rast(ls)
-plot(ndvi)
-```
+ls <- list.files("~/Documents/ridgeline_plots/perduccio/ndvi", pattern = "\\.tif$",full.names = TRUE)
+plot(ndvi <- rast(ls))
 
-## Ridgelines reveal the seasonal signal
+Ridgelines reveal the seasonal signal
 
-```{r, echo=T}
+{r, echo=T}
 library(imageRy)
 im.ridgeline(ndvi, scale=2, palette="viridis")
-```
 
-## Names
+Names
 
-```{r, echo=T}
+{r, echo=T}
 names(ndvi) <- c("01-Jan", "02-Feb", "03-Mar", "04-Apr", "05-May", "06-Jun", "07-Jul", "08-Aug", "09-Sep", "10-Oct", "11-Nov", "12-Dec") 
 im.ridgeline(ndvi, scale=2, palette="viridis")
-```
 
-## Scale
-```{r, echo=T}
+Scale
+
+{r, echo=T}
 names(ndvi) <- c("01-Jan", "02-Feb", "03-Mar", "04-Apr", "05-May", "06-Jun", "07-Jul", "08-Aug", "09-Sep", "10-Oct", "11-Nov", "12-Dec") 
 im.ridgeline(ndvi, scale=4, palette="viridis")
-```
 
-# 2. Layer-wise statistical comparison
+2. Layer-wise statistical comparison
 
-## Outline
-::: {style="text-align: center;"}
-![](../images/framework.png){width="80%"}
-:::
+Outline
 
-## Layer-wise statistical comparison
+Layer-wise statistical comparison
 
-::: {style="text-align: center;"}
-![](../images/kernel_boxplot.png){width="80%"}
-:::
+Empirical example: species distribution spread (code)
 
-## Empirical example: species distribution spread (code)
-```{r, echo=T, eval=F}
+{r, echo=T, eval=F}
 # packages
 library(terra)         # for SpatRaster and c()
 library(virtualspecies)
@@ -393,124 +344,81 @@ im.boxplot.layers(species_suitability$inc,
    limits = c(0.01, 0.99),
    custom_colors = viridis::viridis(4, end = 0.5)
  )
-```
 
-## Example: species distribution
+Example: species distribution
 
-::: {style="text-align: center;"}
-![](../images/species.png){width="80%"}
-:::
+Boxplot and kernel density
 
-## Boxplot and kernel density
-```{r, echo=T, eval=F}
+{r, echo=T, eval=F}
 im.boxplot.layers(species_suitability$inc,
    density = TRUE,
    median_labels = TRUE,
    limits = c(0.01, 0.99),
    custom_colors = viridis::viridis(4, end = 0.5)
  )
-```
 
-::: {style="text-align: center;"}
-![](../images/boxplot_species.png){width="50%"}
-:::
+3. Class-wise comparison
 
+Outline
 
-# 3. Class-wise comparison
+Spatial comparison
 
-## Outline
-::: {style="text-align: center;"}
-![](../images/framework.png){width="80%"}
-:::
+Class-wise comparison
 
-## Spatial comparison
+Empirical example: drone imagery
 
-::: {style="text-align: center;"}
-![](../images/classes.png){width="80%"}
-:::
+{r, echo=T}
+canale <- flip(rast("~/Documents/lectures_and_seminars/images/canale_aquila.JPG"))
+im.plotRGB(canale, 1, 2, 3)
 
-## Class-wise comparison
+Empirical example: classified image
 
-::: {style="text-align: center;"}
-![](../images/classwise.png){width="80%"}
-:::
+{r, echo=T, eval=T, eval=F}
+classcanale <- im.classify(canale, num_clusters=4, seed=17)
 
-## Empirical example: drone imagery
+Final kernel-density boxplot
 
-```{r, echo=T}
-canale <- rast("~/Documents/lectures_and_seminars/images/canale_aquila.JPG")
-plot(canale)
-```
-
-## Empirical example: classified image
-
-```{r, echo=T}
-classcanale <- im.classify(canale, num_clusters=4)
-```
-
-
-## Empirical example: final kernel-density boxplot
-
-```{r, echo=T, eval=FALSE}
+{r, echo=T, eval=FALSE}
 library(imageRy)
-im.boxplot.classes(canale, classcanale, density=TRUE, layer=1)
-```
+im.boxplot.classes(canale, classcanale, density=TRUE, layer=2, limits = c(0.01, 0.99), legend=T)
 
-::: {style="text-align: center;"}
-![](../images/boxplotclasses.png){width="40%"}
-:::
-
-
-## Methodological contribution
+Methodological contribution
 
 The framework provides a progressive workflow:
 
-::: {.flow}
-`SpatRaster` → `im.ridgeline()` → `im.boxplot.layers()` → `im.classify()` → `im.boxplot.classes()`
-:::
+SpatRaster → im.ridgeline() → im.boxplot.layers() → im.classify() → im.boxplot.classes()
 
 It integrates:
 
-- **raster-native** workflows
-- **reproducible R code**
+raster-native workflows
 
-## Coda
+reproducible R code
+
+Visualization and colorblindness
+
+Rocchini et al. (2026). Under the mantra: ‘Make use of colorblind friendly graphs’. Environmetrics, e2877. https://doi.org/10.1002/env.2877
+
+cblindplot package available at: https://github.com/ducciorocchini/cblindplot
+
+Coda
 
 Distribution-based visualization complements map-based analysis by showing information that maps often hide.
 
 The framework helps users move from:
 
-1. **global distribution** exploration
-2. statistically informed **layer comparison**
-3. spatially explicit **class-wise interpretation**
+global distribution exploration
 
-::: {.takehome}
+statistically informed layer comparison
+
+spatially explicit class-wise interpretation
+
 The main value is not a single plot, but a coherent exploratory workflow for raster data.
-:::
 
-## Visualization and colorblindness
+Interested in imageRy?
 
-::: {style="text-align: center;"}
-![](../images/cblindplot_ex.png){width="40%"}
-:::
+R companion
 
-Rocchini et al. (2026). Under the mantra: ‘Make use of colorblind friendly graphs’. Environmetrics, e2877. <https://doi.org/10.1002/env.2877>
-
-`cblindplot` package available at: <https://github.com/ducciorocchini/cblindplot>
-
-## Interested in `imageRy`?
-
-::: {style="text-align: center;"}
-![](../images/imageRy_ms.png){width="90%"}
-:::
-
-## R companion
-
-::: {style="text-align: center;"}
-![](../images/R_coding.png){width="35%"}
-:::
-
-## Many thanks!
+Many thanks!
 
 Contact:
 
@@ -518,11 +426,7 @@ Duccio Rocchini, PhD
 
 Full Professor at: BIOME Lab, University of Bologna, Italy
 
-[duccio.rocchini\@unibo.it](mailto:duccio.rocchini@unibo.it){.email}
+duccio.rocchini@unibo.it
 
 This presentation has been developed using R, Markdown, and Quarto. The open-source code is available at:
-
-::: {style="text-align: center;"}
-![](../images/github_profile_qr.png){align="center" fig-align="center" width="20%"}
-:::
 
